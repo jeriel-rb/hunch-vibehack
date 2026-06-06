@@ -8,9 +8,17 @@ import { JoinRoomCode } from "@/components/join-room-code";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowRight, BellRing, LogOut, Ticket, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BellRing,
+  Clock3,
+  LockKeyhole,
+  LogOut,
+  Ticket,
+  Users,
+} from "lucide-react";
 import { getCategory } from "@/lib/categories";
-import type { HomeData } from "@/lib/types";
+import type { HomeData, RoomHistoryItem } from "@/lib/types";
 
 export function HomeDashboard({ initial }: { initial: HomeData }) {
   const router = useRouter();
@@ -26,8 +34,16 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
     // RLS scopes realtime delivery to this user's own rows.
     const channel = supabase
       .channel("home")
-      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => refresh())
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_invites" }, () => refresh())
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "friendships",
+      }, () => refresh())
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "room_invites",
+      }, () => refresh())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -52,11 +68,18 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
             <h1 className="font-display text-2xl font-semibold tracking-tight">
               Hunch<span className="text-primary">.</span>
             </h1>
-            <p className="text-[15px] text-muted-foreground">Hey @{home.profile.username}</p>
+            <p className="text-[15px] text-muted-foreground">
+              Hey @{home.profile.username}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" className="relative rounded-full" onClick={() => router.push("/friends")}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="relative rounded-full"
+            onClick={() => router.push("/friends")}
+          >
             <Users className="size-4" />
             Friends
             {home.incoming_requests > 0 && (
@@ -65,7 +88,13 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
               </Badge>
             )}
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-full" aria-label="Sign out" onClick={signOut}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            aria-label="Sign out"
+            onClick={signOut}
+          >
             <LogOut className="size-4" />
           </Button>
         </div>
@@ -81,8 +110,12 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
                 <BellRing className="size-5" />
               </span>
               <div className="min-w-0 leading-tight">
-                <h2 className="font-display text-lg font-semibold">You&apos;re invited</h2>
-                <p className="truncate text-sm text-muted-foreground">Accept before the room starts</p>
+                <h2 className="font-display text-lg font-semibold">
+                  You&apos;re invited
+                </h2>
+                <p className="truncate text-sm text-muted-foreground">
+                  Accept before the room starts
+                </p>
               </div>
             </div>
             <Badge className="shrink-0 rounded-full bg-primary/10 text-primary hover:bg-primary/10">
@@ -99,7 +132,9 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
                   className="lift flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 text-left transition hover:border-primary/35"
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-medium">{inv.question}</span>
+                    <span className="block truncate font-medium">
+                      {inv.question}
+                    </span>
                     <span className="block text-sm text-muted-foreground">
                       @{inv.inviter} · {cat?.label ?? inv.category}
                     </span>
@@ -117,10 +152,124 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-display text-lg font-semibold">What are we deciding?</h2>
+        <h2 className="font-display text-lg font-semibold">
+          What are we deciding?
+        </h2>
         <CategoryGrid isPro={home.profile.is_pro} />
         <JoinRoomCode />
       </section>
+
+      <RoomHistory
+        history={home.history ?? []}
+        isPro={home.profile.is_pro}
+        onOpen={(code) => router.push(`/room/${code}`)}
+      />
     </main>
   );
+}
+
+function RoomHistory({
+  history,
+  isPro,
+  onOpen,
+}: {
+  history: RoomHistoryItem[];
+  isPro: boolean;
+  onOpen: (code: string) => void;
+}) {
+  return (
+    <section className="flex flex-col gap-3 pb-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-display text-lg font-semibold">Room history</h2>
+          <p className="text-sm text-muted-foreground">
+            {isPro
+              ? "Jump back into recent rooms."
+              : "Upgrade to reopen past rooms."}
+          </p>
+        </div>
+        {!isPro && (
+          <Badge className="shrink-0 rounded-full bg-primary/10 text-primary hover:bg-primary/10">
+            <LockKeyhole className="size-3.5" />
+            Pro
+          </Badge>
+        )}
+      </div>
+
+      {history.length === 0
+        ? (
+          <div className="rounded-3xl border border-border/60 bg-card p-4 text-[15px] text-muted-foreground">
+            Your rooms will appear here after you start deciding.
+          </div>
+        )
+        : (
+          <div className="flex flex-col gap-2">
+            {history.map((room) => (
+              <RoomHistoryCard
+                key={room.room_id}
+                room={room}
+                locked={!isPro}
+                onOpen={() => onOpen(room.code)}
+              />
+            ))}
+          </div>
+        )}
+    </section>
+  );
+}
+
+function RoomHistoryCard({
+  room,
+  locked,
+  onOpen,
+}: {
+  room: RoomHistoryItem;
+  locked: boolean;
+  onOpen: () => void;
+}) {
+  const cat = getCategory(room.category);
+  const title = room.venue_name ?? room.summary ?? room.question;
+  const when = formatHistoryDate(room.revealed_at ?? room.created_at);
+  const statusLabel = room.status === "revealed" ? "Revealed" : room.status;
+
+  return (
+    <button
+      type="button"
+      disabled={locked}
+      onClick={locked ? undefined : onOpen}
+      className={`flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3 text-left transition ${
+        locked
+          ? "cursor-not-allowed opacity-75"
+          : "lift hover:border-primary/35"
+      }`}
+    >
+      <span className="min-w-0">
+        <span className="block truncate font-medium">{title}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <span>{cat?.label ?? room.category}</span>
+          <span className="inline-flex items-center gap-1">
+            <Users className="size-3.5" />
+            {room.participant_count}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Clock3 className="size-3.5" />
+            {when}
+          </span>
+        </span>
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
+        {locked
+          ? <LockKeyhole className="size-3.5" />
+          : <Ticket className="size-3.5" />}
+        {locked ? "Locked" : statusLabel}
+      </span>
+    </button>
+  );
+}
+
+function formatHistoryDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "recently";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" })
+    .format(date);
 }
