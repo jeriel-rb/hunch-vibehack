@@ -12,6 +12,8 @@ import { HunchLogo } from "@/components/hunch-logo";
 import { toast } from "sonner";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+const DEMO_PASSWORD = "123456";
+const DEMO_ACCOUNTS = ["user1@xmail.com", "user2@xmail.com", "user3@xmail.com"];
 
 function AuthInner() {
   const router = useRouter();
@@ -116,6 +118,31 @@ function AuthInner() {
               <Button className="mt-1 h-12 text-base glow-primary" onClick={logIn} disabled={loading || !email || !password}>
                 {loading ? "Signing in…" : "Log in"}
               </Button>
+
+              <div className="mt-1 rounded-2xl border border-border/60 bg-secondary/40 p-3.5 text-sm">
+                <p className="text-muted-foreground">
+                  Just exploring? Tap a demo account to fill it in — password is{" "}
+                  <span className="font-medium text-foreground">{DEMO_PASSWORD}</span>.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {DEMO_ACCOUNTS.map((demo) => (
+                    <button
+                      key={demo}
+                      type="button"
+                      onClick={() => {
+                        setEmail(demo);
+                        setPassword(DEMO_PASSWORD);
+                      }}
+                      className="rounded-full border border-border/60 bg-card/70 px-3 py-1.5 font-medium text-foreground transition hover:border-primary/60 hover:bg-primary/10"
+                    >
+                      {demo}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2.5 text-muted-foreground">
+                  Or create your real account — it really works.
+                </p>
+              </div>
             </TabsContent>
 
             <TabsContent value="signup" className="stagger mt-5 flex flex-col gap-3">
