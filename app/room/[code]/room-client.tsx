@@ -486,6 +486,8 @@ function WaitingRoom({
     members.filter((member) => member.status === "accepted").length;
   const pendingCount =
     members.filter((member) => member.status === "pending").length;
+  const declinedCount =
+    members.filter((member) => member.status === "declined").length;
   const total = members.length || state.participant_count;
   const host = members.find((member) => member.role === "host");
   const me = members.find((member) => member.id === userId);
@@ -564,7 +566,7 @@ function WaitingRoom({
         </div>
       )}
 
-      <div className="relative grid grid-cols-3 gap-2 rounded-2xl border border-border/60 bg-secondary/50 p-2">
+      <div className="relative grid grid-cols-2 gap-2 rounded-2xl border border-border/60 bg-secondary/50 p-2 sm:grid-cols-4">
         <div className="rounded-xl bg-card/80 px-3 py-2">
           <p className="text-lg font-semibold">{total}</p>
           <p className="text-xs text-muted-foreground">Invited</p>
@@ -576,6 +578,10 @@ function WaitingRoom({
         <div className="rounded-xl bg-card/80 px-3 py-2">
           <p className="text-lg font-semibold text-primary">{pendingCount}</p>
           <p className="text-xs text-muted-foreground">Waiting</p>
+        </div>
+        <div className="rounded-xl bg-card/80 px-3 py-2">
+          <p className="text-lg font-semibold text-destructive">{declinedCount}</p>
+          <p className="text-xs text-muted-foreground">Declined</p>
         </div>
       </div>
 
