@@ -34,7 +34,12 @@ export interface RevealResult {
   success_copy?: string;
 }
 
-export type RoomStatus = "waiting" | "open" | "choosing" | "revealing" | "revealed";
+export type RoomStatus =
+  | "waiting"
+  | "open"
+  | "choosing"
+  | "revealing"
+  | "revealed";
 export type RoomInviteStatus = "pending" | "accepted" | "declined";
 export type Category = "eat" | "travel" | "watch" | "other";
 
@@ -108,10 +113,24 @@ export interface RoomInvite {
   inviter: string;
 }
 
+export interface RoomHistoryItem {
+  room_id: string;
+  code: string;
+  question: string;
+  category: Category;
+  status: RoomStatus;
+  created_at: string;
+  revealed_at: string | null;
+  participant_count: number;
+  summary: string | null;
+  venue_name: string | null;
+}
+
 export interface HomeData {
   profile: Profile;
   incoming_requests: number;
   invites: RoomInvite[];
+  history: RoomHistoryItem[];
 }
 
 export interface SocialData {
