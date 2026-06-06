@@ -12,18 +12,22 @@ import {
   ArrowRight,
   BellRing,
   Clock3,
+  Loader2,
   LockKeyhole,
   LogOut,
   Ticket,
   Users,
+  X,
 } from "lucide-react";
 import { getCategory } from "@/lib/categories";
 import type { HomeData, RoomHistoryItem } from "@/lib/types";
+import { toast } from "sonner";
 
 export function HomeDashboard({ initial }: { initial: HomeData }) {
   const router = useRouter();
   const [home, setHome] = useState<HomeData>(initial);
   const [supabase] = useState(() => createClient());
+  const [decliningInvite, setDecliningInvite] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.rpc("get_home");
@@ -53,6 +57,24 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
   async function signOut() {
     await supabase.auth.signOut();
     router.refresh();
+  }
+
+  async function declineInvite(roomId: string) {
+    setDecliningInvite(roomId);
+    const { error } = await supabase.rpc("respond_room_invite", {
+      p_room_id: roomId,
+      p_accept: false,
+    });
+    setDecliningInvite(null);
+
+    if (error) return toast.error(error.message);
+
+    setHome((current) => ({
+      ...current,
+      invites: current.invites.filter((invite) => invite.room_id !== roomId),
+    }));
+    toast.success("Invite declined");
+    refresh();
   }
 
   return (
@@ -125,26 +147,44 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
           <div className="relative mt-3 flex flex-col gap-2">
             {home.invites.map((inv) => {
               const cat = getCategory(inv.category);
+              const declining = decliningInvite === inv.room_id;
               return (
-                <button
+                <div
                   key={inv.code}
-                  onClick={() => router.push(`/room/${inv.code}`)}
-                  className="lift flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 text-left transition hover:border-primary/35"
+                  className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/70 p-2"
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">
-                      {inv.question}
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/room/${inv.code}`)}
+                    className="lift flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl p-1.5 text-left transition hover:text-primary"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">
+                        {inv.question}
+                      </span>
+                      <span className="block text-sm text-muted-foreground">
+                        @{inv.inviter} · {cat?.label ?? inv.category}
+                      </span>
                     </span>
-                    <span className="block text-sm text-muted-foreground">
-                      @{inv.inviter} · {cat?.label ?? inv.category}
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      <Ticket className="size-3.5" />
+                      {inv.code}
+                      <ArrowRight className="size-3.5" />
                     </span>
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                    <Ticket className="size-3.5" />
-                    {inv.code}
-                    <ArrowRight className="size-3.5" />
-                  </span>
-                </button>
+                  </button>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="size-9 shrink-0 rounded-xl"
+                    aria-label={`Decline invite ${inv.code}`}
+                    disabled={decliningInvite !== null}
+                    onClick={() => declineInvite(inv.room_id)}
+                  >
+                    {declining
+                      ? <Loader2 className="size-4 animate-spin" />
+                      : <X className="size-4" />}
+                  </Button>
+                </div>
               );
             })}
           </div>
