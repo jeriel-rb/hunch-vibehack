@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MailCheck } from "lucide-react";
 import { HunchLogo } from "@/components/hunch-logo";
+import { safeNext } from "@/lib/utils";
 import { toast } from "sonner";
 
 const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
@@ -18,7 +19,7 @@ const DEMO_ACCOUNTS = ["user1@xmail.com", "user2@xmail.com", "user3@xmail.com"];
 function AuthInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/";
+  const next = safeNext(params.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
