@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { CategoryGrid } from "@/components/category-grid";
@@ -11,33 +11,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowRight, BellRing, LogOut, Ticket, Users } from "lucide-react";
 import { getCategory } from "@/lib/categories";
 import type { HomeData } from "@/lib/types";
-import { toast } from "sonner";
 
 export function HomeDashboard({ initial }: { initial: HomeData }) {
   const router = useRouter();
   const [home, setHome] = useState<HomeData>(initial);
   const [supabase] = useState(() => createClient());
-  const knownInviteCodes = useRef(new Set(initial.invites.map((invite) => invite.code)));
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.rpc("get_home");
-    if (!data) return;
-
-    const nextHome = data as unknown as HomeData;
-    const freshInvite = nextHome.invites.find((invite) => !knownInviteCodes.current.has(invite.code));
-    nextHome.invites.forEach((invite) => knownInviteCodes.current.add(invite.code));
-    setHome(nextHome);
-
-    if (freshInvite) {
-      toast("You're invited", {
-        description: `@${freshInvite.inviter} invited you to ${freshInvite.question}`,
-        action: {
-          label: "Join",
-          onClick: () => router.push(`/room/${freshInvite.code}`),
-        },
-      });
-    }
-  }, [router, supabase]);
+    if (data) setHome(data as unknown as HomeData);
+  }, [supabase]);
 
   useEffect(() => {
     // RLS scopes realtime delivery to this user's own rows.
