@@ -1,7 +1,7 @@
 # Direction-First Consensus Flow — Design
 
 **Date:** 2026-06-06
-**Status:** Approved (pending spec review)
+**Status:** Implemented & deployed (2026-06-06)
 
 ## Problem
 
