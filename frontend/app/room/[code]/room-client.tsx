@@ -10,6 +10,7 @@ import { ShareButton } from "@/components/share-button";
 import { InviteFriends } from "@/components/invite-friends";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BellRing, CheckCircle2, ChevronLeft, Clock3, Link2, Loader2, LockKeyhole, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 
@@ -74,9 +75,8 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
       </header>
 
       {!waiting && (
-        <div className={`grid gap-2 pb-3 ${state.is_host && !revealed ? "grid-cols-2" : "grid-cols-1"}`}>
-          {state.is_host && !revealed && <InviteFriends roomId={state.id} className="w-full" />}
-          <ShareButton code={state.code} className="w-full" />
+        <div className="pb-3">
+          <ParticipantsDialog state={state} />
         </div>
       )}
 
@@ -90,6 +90,69 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
         <ChatRoom state={state} onRefresh={refresh} />
       )}
     </main>
+  );
+}
+
+function ParticipantsDialog({ state }: { state: RoomState }) {
+  const members = state.members ?? [];
+  const acceptedMembers = members.filter((member) => member.status === "accepted");
+  const visibleMembers = acceptedMembers.length > 0 ? acceptedMembers : members;
+
+  return (
+    <Dialog>
+      <DialogTrigger render={<Button variant="secondary" className="h-11 w-full justify-between rounded-2xl px-3" />}>
+        <span className="inline-flex items-center gap-2">
+          <Users className="size-4 text-primary" />
+          Participants
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="flex -space-x-2">
+            {visibleMembers.slice(0, 3).map((member) => (
+              <Avatar key={member.id} className="size-6 border-2 border-secondary">
+                <AvatarFallback className="bg-linear-to-br from-primary to-[#9b7bff] text-[10px] font-semibold text-primary-foreground">
+                  {initials(member)}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+          </span>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+            {visibleMembers.length}
+          </span>
+        </span>
+      </DialogTrigger>
+      <DialogContent className="gap-3">
+        <DialogHeader>
+          <DialogTitle>Participants</DialogTitle>
+        </DialogHeader>
+        <div className="flex max-h-80 flex-col gap-2 overflow-y-auto">
+          {visibleMembers.map((member) => {
+            const tone = statusTone(member.status);
+            const Icon = tone.icon;
+            return (
+              <div key={member.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar className="size-9">
+                    <AvatarFallback className="bg-linear-to-br from-primary to-[#9b7bff] text-xs font-semibold text-primary-foreground">
+                      {initials(member)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 leading-tight">
+                    <p className="truncate font-semibold">@{member.username}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {member.role === "host" ? "Host" : member.is_current_user ? "You" : "Participant"}
+                    </p>
+                  </div>
+                </div>
+                <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${tone.className}`}>
+                  <Icon className="size-3.5" />
+                  {member.role === "host" ? "Host" : tone.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

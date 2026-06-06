@@ -133,22 +133,24 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
 
         {/* Active question's quick-reply chips */}
         {activeRound0 && (
-          <div className="animate-fade-up max-w-[85%]">
-            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-primary">
-              <Sparkles className="size-3" /> Hunch
-            </div>
-            <div className="rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5 text-base leading-snug shadow-sm ring-1 ring-foreground/3">
-              {activeRound0.prompt}
+          <>
+            <div className="animate-fade-up max-w-[85%]">
+              <div className="mb-1 flex items-center gap-1 text-xs font-medium text-primary">
+                <Sparkles className="size-3" /> Hunch
+              </div>
+              <div className="rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5 text-base leading-snug shadow-sm ring-1 ring-foreground/3">
+                {activeRound0.prompt}
+              </div>
             </div>
             {activeRound0.chips && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="animate-fade-up ml-auto flex max-w-[86%] flex-wrap justify-end gap-2">
                 {activeRound0.chips.map((c, ci) => (
                   <button
                     key={c.value}
                     onClick={() => pickRound0(activeRound0, c.value)}
                     disabled={saving}
                     style={{ animationDelay: `${0.05 + ci * 0.05}s` }}
-                    className="animate-chip rounded-full border border-border bg-card px-4 py-2.5 text-base font-medium shadow-sm transition active:scale-95 hover:border-primary hover:text-primary hover:shadow-md"
+                    className="animate-chip rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-base font-semibold leading-snug text-primary-foreground shadow-sm shadow-primary/25 transition active:scale-95 hover:bg-primary/90 hover:shadow-md disabled:opacity-60"
                   >
                     {c.emoji ? `${c.emoji} ` : ""}
                     {c.label}
@@ -156,7 +158,7 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
                 ))}
               </div>
             )}
-          </div>
+          </>
         )}
 
         {caughtUp && state.status !== "revealing" && (
