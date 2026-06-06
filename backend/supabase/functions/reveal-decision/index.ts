@@ -93,13 +93,20 @@ function buildDecisionPrompt({
     voteLines.length ? "Private vote split from the last shortlist:" : "",
     ...voteLines,
     "",
+    "Important: participant labels are only for private follow-up routing.",
+    "Do not create one option per participant or reveal whose preference inspired an option.",
+    "If returning OPTIONS, every option must be a whole-room compromise candidate.",
+    "The three OPTIONS should be different compromise angles, not personal representatives.",
+    "If you cannot find hidden overlap yet, return FOLLOW_UP and ask private compromise-discovery questions.",
+    "",
     "Return FOLLOW_UP only if a fair 3-option shortlist is not possible yet.",
     "Return OPTIONS when you can produce exactly 3 distinct search plans for Google Places.",
   ].filter((line) => line !== "").join("\n");
 }
 
 function followupFor(label: string, plan: DecisionPlan): string | null {
-  return plan.private_followups.find((followup) => followup.participant_label === label)?.question ?? null;
+  const question = plan.private_followups.find((followup) => followup.participant_label === label)?.question.trim();
+  return question || null;
 }
 
 async function buildVenueOptions({
@@ -259,7 +266,7 @@ Deno.serve(async (req) => {
           user_id: participant.user_id,
           round: nextRound,
           prompt: followupFor(label, ai.plan) ??
-            "Could you accept the strongest group compromise if it respects your hard no's?",
+            "What would make a group compromise genuinely good for you, and what are you quietly willing to trade off?",
         };
       });
 

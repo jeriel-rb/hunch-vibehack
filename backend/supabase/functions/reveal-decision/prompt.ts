@@ -31,9 +31,23 @@ outputs must preserve privacy.
 
 Your job each round:
 - Respect hard constraints first: allergies, dietary rules, strict budgets, transport limits, and avoid lists.
+- Find the hidden overlap: what everyone can secretly enjoy, or the compromise they would feel good accepting.
 - Prefer a practical compromise that gives every participant a meaningful reason to say yes.
 - If there is enough overlap, return OPTIONS with exactly 3 distinct restaurant search plans.
 - If there is not enough overlap, return FOLLOW_UP with private, targeted follow-up questions.
+
+Consensus quality rules:
+- Never create one option per participant. The shortlist is not "A's pick, B's pick, C's pick".
+- Every place option must be a whole-room compromise candidate, not a personal representative.
+- Build three compromise angles for the whole room: safest overlap, warm comfort compromise, and interesting-but-safe stretch.
+- Each option should satisfy all hard constraints and combine at least two compatible private signals.
+- Participant labels are routing labels for private follow-up questions only. Never put labels or names in place queries, rationales, reasons, or reveal copy.
+- If the best you can do is one obvious pick for each person, return FOLLOW_UP instead of OPTIONS.
+
+Follow-up rules:
+- When returning FOLLOW_UP, ask each participant a private question whenever possible.
+- Each private question should uncover what would make a group compromise genuinely good for them, what they are quietly willing to trade off, or whether a specific compromise lane would work.
+- Do not ask generic "what do you want?" questions.
 
 Privacy rules:
 - Never quote one participant's private answer to another participant.
@@ -46,6 +60,25 @@ Tone:
 - Success copy should feel celebratory: the group escaped decision chaos.
 
 Return only JSON matching the schema.`;
+
+const PRIVATE_LABEL_PATTERN =
+  /\b(?:participant|person|user)\s+[A-Z]\b|\b[A-Z]'s\b|\bfor\s+[A-Z]\b|\b[A-Z]\s+(?:wanted|asked|picked|prefers|likes|needs|avoids)\b/i;
+
+const RATIONALE_FALLBACKS = [
+  "Balanced group compromise built from the strongest shared signals.",
+  "Flexible middle lane that keeps the room close to a real yes.",
+  "Group-friendly stretch that stays inside the room's hard constraints.",
+];
+
+function compactText(value: unknown): string {
+  return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+}
+
+function safeOptionText(value: unknown, fallback: string): string {
+  const text = compactText(value);
+  if (!text || PRIVATE_LABEL_PATTERN.test(text)) return fallback;
+  return text;
+}
 
 const decisionSchema = {
   type: "object",
@@ -134,10 +167,17 @@ function extractOutputText(json: Record<string, unknown>): string {
   return "";
 }
 
-function parseDecisionPlan(raw: string): DecisionPlan {
+export function parseDecisionPlan(raw: string): DecisionPlan {
   const obj = JSON.parse(raw) as DecisionPlan;
   const placeQueries = Array.isArray(obj.place_queries) ? obj.place_queries : [];
-  const privateFollowups = Array.isArray(obj.private_followups) ? obj.private_followups : [];
+  const privateFollowups = Array.isArray(obj.private_followups)
+    ? obj.private_followups
+      .map((followup) => ({
+        participant_label: compactText(followup.participant_label).toUpperCase(),
+        question: compactText(followup.question),
+      }))
+      .filter((followup) => followup.participant_label && followup.question)
+    : [];
 
   if (obj.action === "OPTIONS" && placeQueries.length !== 3) {
     throw new Error("model must return exactly 3 place queries");
@@ -153,17 +193,18 @@ function parseDecisionPlan(raw: string): DecisionPlan {
     success_copy: obj.success_copy ?? "",
     anonymous_reasons: (obj.anonymous_reasons ?? []).slice(0, 4),
     ruled_out: (obj.ruled_out ?? []).slice(0, 4),
-    place_queries: placeQueries.slice(0, 3).map((query) => ({
-      cuisine: query.cuisine ?? "",
-      search_query: query.search_query ?? query.cuisine ?? "restaurants",
-      rationale: query.rationale ?? "",
-      reasons: (query.reasons ?? []).slice(0, 4),
+    place_queries: placeQueries.slice(0, 3).map((query, index) => ({
+      cuisine: safeOptionText(query.cuisine, "Group-friendly compromise"),
+      search_query: safeOptionText(query.search_query, query.cuisine ?? "group-friendly restaurants"),
+      rationale: safeOptionText(query.rationale, RATIONALE_FALLBACKS[index] ?? RATIONALE_FALLBACKS[0]),
+      reasons: (query.reasons ?? [])
+        .slice(0, 4)
+        .map((reason, reasonIndex) =>
+          safeOptionText(reason, reasonIndex === 0 ? "It keeps multiple private signals in play." : "It avoids turning the shortlist into personal picks.")
+        ),
       ruled_out: (query.ruled_out ?? obj.ruled_out ?? []).slice(0, 4),
     })),
-    private_followups: privateFollowups.map((followup) => ({
-      participant_label: followup.participant_label?.trim().toUpperCase() ?? "",
-      question: followup.question ?? "",
-    })),
+    private_followups: privateFollowups,
   };
 }
 
