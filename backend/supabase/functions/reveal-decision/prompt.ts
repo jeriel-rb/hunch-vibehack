@@ -13,6 +13,8 @@ export interface PrivateFollowup {
 
 export interface DecisionPlan {
   action: "FOLLOW_UP" | "OPTIONS";
+  direction: string;
+  direction_copy: string;
   room_summary: string;
   consensus_copy: string;
   success_copy: string;
@@ -29,37 +31,50 @@ The app gives you anonymized participant inputs labeled A, B, C, etc. Users must
 each other's private answers before the final reveal. You may use all inputs, but your
 outputs must preserve privacy.
 
-Your job each round:
+Work in two stages — direction first, restaurants second:
+
+STAGE 1 — Find one shared direction.
+- Your first job is to converge the whole room on a single direction: one cuisine or vibe
+  everyone can be happy with tonight (e.g. "Japanese", "cozy comfort food", "casual Western").
 - Respect hard constraints first: allergies, dietary rules, strict budgets, transport limits, and avoid lists.
-- Find the hidden overlap: what everyone can secretly enjoy, or the compromise they would feel good accepting.
-- Prefer a practical compromise that gives every participant a meaningful reason to say yes.
-- If there is enough overlap, return OPTIONS with exactly 3 distinct restaurant search plans.
-- If there is not enough overlap, return FOLLOW_UP with private, targeted follow-up questions.
+- Find the hidden overlap: the direction everyone can secretly enjoy or feel good accepting.
+- If someone is leaning a different way, ask them a private, targeted follow-up to learn what would
+  make the leading direction a genuine yes for them. Never pressure, never reveal that the room is split.
+- If there is not yet one clear shared direction, return FOLLOW_UP with private, targeted questions.
+
+STAGE 2 — Only once a single shared direction is clear, return OPTIONS.
+- Set "direction" to the agreed direction label (e.g. "Japanese").
+- Set "direction_copy" to a short, warm, group-level announcement of it, e.g.
+  "Most of you are quietly leaning Japanese tonight 🍜". Never name or imply specific individuals.
+- Return exactly 3 real restaurant search plans, ALL within that one direction
+  (three angles: safest overlap, warm comfort, interesting-but-safe stretch).
+- Tailor the picks so anyone who leaned differently still has a genuine reason to say yes.
 
 Consensus quality rules:
 - Never create one option per participant. The shortlist is not "A's pick, B's pick, C's pick".
-- Every place option must be a whole-room compromise candidate, not a personal representative.
-- Build three compromise angles for the whole room: safest overlap, warm comfort compromise, and interesting-but-safe stretch.
+- Every place option must be a whole-room compromise candidate within the one direction, not a personal representative.
 - Each option should satisfy all hard constraints and combine at least two compatible private signals.
-- Participant labels are routing labels for private follow-up questions only. Never put labels or names in place queries, rationales, reasons, or reveal copy.
-- If the best you can do is one obvious pick for each person, return FOLLOW_UP instead of OPTIONS.
+- Participant labels are routing labels for private follow-up questions only. Never put labels or names in place queries, rationales, reasons, direction copy, or reveal copy.
+- If you cannot yet name one shared direction, return FOLLOW_UP instead of OPTIONS.
 
 Follow-up rules:
 - When returning FOLLOW_UP, ask each participant a private question whenever possible.
-- Each private question should uncover what would make a group compromise genuinely good for them, what they are quietly willing to trade off, or whether a specific compromise lane would work.
+- Each private question should uncover what shared direction they'd enjoy, what they are quietly
+  willing to trade off, or whether a specific direction would work for them.
 - Do not ask generic "what do you want?" questions.
 
 Privacy rules:
 - Never quote one participant's private answer to another participant.
 - Follow-up questions must be private and addressed by participant label only.
-- Final reasons must be anonymous, aggregated, and group-level.
+- Final reasons and direction copy must be anonymous, aggregated, and group-level.
 
 Tone:
 - Fun, sharp, kind, and confident.
 - No moralizing. No bland "based on preferences" filler.
-- Success copy should feel celebratory: the group escaped decision chaos.
+- Success and direction copy should feel celebratory: the group quietly already agreed.
 
-Return only JSON matching the schema.`;
+Return only JSON matching the schema. For FOLLOW_UP, "direction", "direction_copy", and
+"place_queries" may be empty.`;
 
 const PRIVATE_LABEL_PATTERN =
   /\b(?:participant|person|user)\s+[A-Z]\b|\b[A-Z]'s\b|\bfor\s+[A-Z]\b|\b[A-Z]\s+(?:wanted|asked|picked|prefers|likes|needs|avoids)\b/i;
@@ -85,6 +100,8 @@ const decisionSchema = {
   additionalProperties: false,
   required: [
     "action",
+    "direction",
+    "direction_copy",
     "room_summary",
     "consensus_copy",
     "success_copy",
@@ -95,6 +112,8 @@ const decisionSchema = {
   ],
   properties: {
     action: { type: "string", enum: ["FOLLOW_UP", "OPTIONS"] },
+    direction: { type: "string" },
+    direction_copy: { type: "string" },
     room_summary: { type: "string" },
     consensus_copy: { type: "string" },
     success_copy: { type: "string" },
@@ -179,8 +198,15 @@ export function parseDecisionPlan(raw: string): DecisionPlan {
       .filter((followup) => followup.participant_label && followup.question)
     : [];
 
+  const direction = compactText(obj.direction);
+  const directionCopy = safeOptionText(obj.direction_copy, "") ||
+    (direction ? `Most of you are leaning ${direction} tonight` : "");
+
   if (obj.action === "OPTIONS" && placeQueries.length !== 3) {
     throw new Error("model must return exactly 3 place queries");
+  }
+  if (obj.action === "OPTIONS" && !direction) {
+    throw new Error("model must return a direction for OPTIONS");
   }
   if (obj.action === "FOLLOW_UP" && privateFollowups.length === 0) {
     throw new Error("model missing private follow-ups");
@@ -188,6 +214,8 @@ export function parseDecisionPlan(raw: string): DecisionPlan {
 
   return {
     action: obj.action,
+    direction,
+    direction_copy: directionCopy,
     room_summary: obj.room_summary ?? "",
     consensus_copy: obj.consensus_copy ?? "",
     success_copy: obj.success_copy ?? "",

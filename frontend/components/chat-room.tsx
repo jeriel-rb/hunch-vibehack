@@ -29,7 +29,9 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [revealing, setRevealing] = useState(false);
+  const [revealError, setRevealError] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const triggeredRound = useRef<number | null>(null);
   const answers = draft.key === stateKey ? draft.answers : state.my_answers ?? {};
 
   const caughtUp = state.my_round >= state.round;
@@ -60,6 +62,20 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history.length, state.status]);
+
+  const everyoneIn = state.answered_count >= state.participant_count;
+
+  // Auto-advance: the moment everyone has answered a round, the host's client
+  // sends the room to Hunch automatically — no manual "process" tap. Fires once
+  // per round; the function flips status to "revealing" first and 409s any
+  // duplicate, so concurrent realtime refreshes are safe.
+  useEffect(() => {
+    if (!state.is_host || state.status !== "open" || !everyoneIn) return;
+    if (triggeredRound.current === state.round) return;
+    triggeredRound.current = state.round;
+    reveal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.is_host, state.status, everyoneIn, state.round]);
 
   async function save(finalAnswers: ResponseAnswers) {
     setSaving(true);
@@ -92,6 +108,7 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
 
   async function reveal() {
     setRevealing(true);
+    setRevealError(false);
     const supabase = createClient();
     const {
       data: { session },
@@ -103,7 +120,10 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
     });
     setRevealing(false);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return toast.error(data.error ?? "Reveal failed — try again");
+    if (!res.ok) {
+      setRevealError(true);
+      return toast.error(data.error ?? "Reveal failed — try again");
+    }
     // No "still split" messaging — a follow-up round just surfaces quietly as the
     // next Hunch question. The goal is to find shared ground, not flag disagreement.
     onRefresh();
@@ -177,7 +197,7 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
           </div>
         )}
 
-        {caughtUp && state.status !== "revealing" && (
+        {caughtUp && state.status === "open" && !everyoneIn && (
           <div className="max-w-[85%]">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-3 py-1.5 text-sm font-medium text-success">
               <Check className="size-4" /> Locked in — {ready} of {total} ready
@@ -185,9 +205,9 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
           </div>
         )}
 
-        {state.status === "revealing" && (
+        {((caughtUp && everyoneIn && state.status === "open" && !revealError) || state.status === "revealing") && (
           <div className="flex animate-pulse items-center gap-1.5 text-sm font-medium text-primary">
-            <Sparkles className="size-4" /> Hunch is finding the yes…
+            <Sparkles className="size-4" /> Hunch is reading the room…
           </div>
         )}
 
@@ -224,19 +244,15 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
         </div>
       )}
 
-      {/* Host reveal control */}
-      {state.is_host && state.status !== "revealing" && (
+      {/* Hunch processes each round automatically once everyone's in. The only
+          manual control is a host retry if that call fails. */}
+      {state.is_host && revealError && state.status === "open" && everyoneIn && (
         <div className="border-t border-border pt-3">
-          <Button className="h-12 w-full rounded-full text-base glow-primary" disabled={revealing || ready < total} onClick={reveal}>
+          <Button className="h-12 w-full rounded-full text-base glow-primary" disabled={revealing} onClick={reveal}>
             <Sparkles className="size-4" />
-            {revealing ? "Finding…" : ready < total ? `Waiting for everyone (${ready}/${total})` : "Build the 3 picks"}
+            {revealing ? "Finding…" : "Try again"}
           </Button>
         </div>
-      )}
-      {!state.is_host && caughtUp && (
-        <p className="border-t border-border pt-3 text-center text-[15px] text-muted-foreground">
-          Waiting for the host to reveal…
-        </p>
       )}
     </div>
   );

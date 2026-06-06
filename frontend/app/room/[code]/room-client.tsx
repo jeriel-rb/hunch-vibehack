@@ -129,19 +129,23 @@ function PlaceVoting({
   const options = state.place_options ?? [];
   const selected = state.my_place_vote;
   const locked = Boolean(selected);
+  const directionCopy =
+    state.result?.direction_copy ?? state.result?.consensus_copy ?? "Here's the shortlist everyone can say yes to.";
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
-      <div className="rounded-3xl border border-primary/20 bg-card p-4 shadow-sm ring-1 ring-primary/10">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">The shortlist</p>
-        <h3 className="mt-1 font-display text-2xl font-semibold tracking-tight">Pick your yes</h3>
-        <p className="mt-1 text-[15px] leading-snug text-muted-foreground">
-          Hunch found three real places. Your vote is private until consensus lands.
+      <div className="animate-fade-up rounded-3xl border border-primary/20 bg-card p-4 shadow-sm ring-1 ring-primary/10">
+        <div className="mb-1 flex items-center gap-1 text-xs font-medium text-primary">
+          <Sparkles className="size-3.5" /> Hunch
+        </div>
+        <h3 className="font-display text-2xl font-semibold leading-tight tracking-tight">{directionCopy}</h3>
+        <p className="mt-1.5 text-[15px] leading-snug text-muted-foreground">
+          Here are three spots that fit. Your vote is private until consensus lands.
         </p>
         <div className="mt-3 rounded-2xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">
           {locked
             ? `${state.votes_cast} of ${state.participant_count} locked in. Waiting for the room.`
-            : `Choose one. Majority wins when more than half agree.`}
+            : "Choose one — Hunch lands on the spot everyone can say yes to."}
         </div>
       </div>
 
@@ -159,6 +163,7 @@ function PlaceVoting({
               key={option.id}
               option={option}
               selected={selected === option.id}
+              dimmed={locked && selected !== option.id}
               disabled={voting !== null}
               loading={voting === option.id}
               onVote={() => onVote(option.id)}
@@ -173,12 +178,14 @@ function PlaceVoting({
 function PlaceOptionCard({
   option,
   selected,
+  dimmed,
   disabled,
   loading,
   onVote,
 }: {
   option: PlaceOption;
   selected: boolean;
+  dimmed: boolean;
   disabled: boolean;
   loading: boolean;
   onVote: () => void;
@@ -189,7 +196,7 @@ function PlaceOptionCard({
     <article
       className={`overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 transition ${
         selected ? "border-primary/45 ring-primary/25 shadow-primary/10" : "border-border/70 ring-foreground/3"
-      }`}
+      } ${dimmed ? "opacity-50 hover:opacity-100" : ""}`}
     >
       {venue.photo_url && (
         <Image
@@ -236,9 +243,14 @@ function PlaceOptionCard({
           )}
         </div>
 
-        <Button className="h-11 w-full rounded-2xl glow-primary" disabled={disabled} onClick={onVote}>
+        <Button
+          variant={dimmed ? "secondary" : "default"}
+          className="h-11 w-full rounded-2xl glow-primary"
+          disabled={disabled}
+          onClick={onVote}
+        >
           {loading ? <Loader2 className="size-4 animate-spin" /> : selected ? <CheckCircle2 className="size-4" /> : <Sparkles className="size-4" />}
-          {selected ? "Your private pick" : "Pick this place"}
+          {selected ? "Your private pick" : dimmed ? "Switch to this" : "Pick this place"}
         </Button>
       </div>
     </article>

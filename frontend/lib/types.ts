@@ -24,6 +24,8 @@ export interface PlaceOption {
 export interface RevealResult {
   summary: string;
   cuisine: string;
+  direction?: string;
+  direction_copy?: string;
   reasons: string[];
   ruled_out: string[];
   venue: Venue | null;

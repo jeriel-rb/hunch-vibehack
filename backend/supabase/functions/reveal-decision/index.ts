@@ -37,6 +37,10 @@ interface VoteRow {
 
 const labelFor = (index: number) => String.fromCharCode(65 + index);
 
+// After this many private follow-up rounds, Hunch must commit to a direction
+// rather than keep asking — the chat phase always terminates.
+const MAX_FOLLOWUP_ROUNDS = 2;
+
 function summarizeAnswers(answers: Record<string, unknown>): string {
   const parts: string[] = [];
   if (answers.budget) parts.push(`budget=${answers.budget}`);
@@ -54,12 +58,14 @@ function buildDecisionPrompt({
   responses,
   previousOptions,
   previousVotes,
+  mustCommit,
 }: {
   room: Record<string, unknown>;
   participants: ParticipantRow[];
   responses: ResponseRow[];
   previousOptions: OptionRow[];
   previousVotes: VoteRow[];
+  mustCommit: boolean;
 }) {
   const responseByUser = new Map(responses.map((row) => [row.user_id, row]));
   const labels = new Map(participants.map((participant, index) => [participant.user_id, labelFor(index)]));
@@ -95,12 +101,15 @@ function buildDecisionPrompt({
     "",
     "Important: participant labels are only for private follow-up routing.",
     "Do not create one option per participant or reveal whose preference inspired an option.",
-    "If returning OPTIONS, every option must be a whole-room compromise candidate.",
-    "The three OPTIONS should be different compromise angles, not personal representatives.",
-    "If you cannot find hidden overlap yet, return FOLLOW_UP and ask private compromise-discovery questions.",
+    "Converge the room on ONE shared direction (a cuisine or vibe) before suggesting restaurants.",
+    "If returning OPTIONS, all three must sit within that one direction as whole-room candidates, not personal representatives.",
+    "If there is not yet one clear shared direction, return FOLLOW_UP and ask private direction-discovery questions.",
     "",
-    "Return FOLLOW_UP only if a fair 3-option shortlist is not possible yet.",
-    "Return OPTIONS when you can produce exactly 3 distinct search plans for Google Places.",
+    "Return FOLLOW_UP if there is not yet one clear shared direction.",
+    "Return OPTIONS only once a single shared direction is clear: set direction, direction_copy, and exactly 3 place_queries all within that direction.",
+    mustCommit
+      ? "This room has already had several private rounds. You MUST return OPTIONS now: commit to the majority direction, set direction and direction_copy, and provide exactly 3 place_queries within it."
+      : "",
   ].filter((line) => line !== "").join("\n");
 }
 
@@ -240,6 +249,7 @@ Deno.serve(async (req) => {
           responses: (rows ?? []) as ResponseRow[],
           previousOptions: (previousOptions ?? []) as OptionRow[],
           previousVotes: (previousVotes ?? []) as VoteRow[],
+          mustCommit: (room.round ?? 0) >= MAX_FOLLOWUP_ROUNDS,
         }),
         Deno.env.get("OPENAI_API_KEY")!,
         aiSession?.openai_response_id ?? null,
@@ -328,7 +338,9 @@ Deno.serve(async (req) => {
         answered_count: 0,
         result: {
           summary: ai.plan.room_summary,
-          cuisine: "Consensus shortlist",
+          cuisine: ai.plan.direction || "Consensus shortlist",
+          direction: ai.plan.direction,
+          direction_copy: ai.plan.direction_copy,
           reasons: ai.plan.anonymous_reasons,
           ruled_out: ai.plan.ruled_out,
           venue: null,
