@@ -12,11 +12,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { UserPlus, Check } from "lucide-react";
 import { toast } from "sonner";
 import type { FriendUser, SocialData } from "@/lib/types";
 
-export function InviteFriends({ roomId }: { roomId: string }) {
+export function InviteFriends({
+  roomId,
+  className,
+  label = "Invite friends",
+}: {
+  roomId: string;
+  className?: string;
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [friends, setFriends] = useState<FriendUser[] | null>(null);
   const [invited, setInvited] = useState<Set<string>>(new Set());
@@ -44,9 +53,9 @@ export function InviteFriends({ roomId }: { roomId: string }) {
         if (o && friends === null) load();
       }}
     >
-      <DialogTrigger render={<Button variant="secondary" size="sm" />}>
+      <DialogTrigger render={<Button variant="secondary" size="sm" className={cn("h-11 rounded-2xl", className)} />}>
         <UserPlus className="size-4" />
-        Invite
+        {label}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

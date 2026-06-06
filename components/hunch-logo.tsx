@@ -1,9 +1,10 @@
 import * as React from "react";
 
-// The Hunch mark: a dark "lens" holding four options. Three are still unknown
-// (dim), one is lit purple — the hidden consensus Hunch just found. A soft halo
-// pulses around the found option (frozen under prefers-reduced-motion).
+// The Hunch mark: five equal options inside a dark lens. All five dots use the
+// same purple so the mark reads as a group, not a winner/loser grid.
 export function HunchLogo({ className, ...props }: React.ComponentProps<"svg">) {
+  const dot = "#7c5cff";
+
   return (
     <svg
       viewBox="0 0 48 48"
@@ -14,17 +15,14 @@ export function HunchLogo({ className, ...props }: React.ComponentProps<"svg">) 
       className={className}
       {...props}
     >
-      {/* the lens */}
       <circle cx="24" cy="24" r="23" fill="#14141b" />
       <circle cx="24" cy="24" r="22.25" stroke="#ffffff" strokeOpacity="0.08" strokeWidth="1.5" />
-      {/* discovery halo around the found option */}
-      <circle className="logo-halo" cx="31" cy="31" r="8" fill="#7c5cff" fillOpacity="0.22" />
-      {/* three options still unknown… */}
-      <circle cx="17" cy="17" r="4.5" fill="#ffffff" fillOpacity="0.5" />
-      <circle cx="31" cy="17" r="4.5" fill="#ffffff" fillOpacity="0.5" />
-      <circle cx="17" cy="31" r="4.5" fill="#ffffff" fillOpacity="0.5" />
-      {/* …and the one Hunch found */}
-      <circle cx="31" cy="31" r="4.9" fill="#7c5cff" />
+      <circle className="logo-halo" cx="24" cy="24" r="14" fill={dot} fillOpacity="0.14" />
+      <circle cx="24" cy="13.5" r="4.7" fill={dot} />
+      <circle cx="14.5" cy="23.5" r="4.7" fill={dot} />
+      <circle cx="24" cy="24" r="4.9" fill={dot} />
+      <circle cx="33.5" cy="23.5" r="4.7" fill={dot} />
+      <circle cx="24" cy="34.5" r="4.7" fill={dot} />
     </svg>
   );
 }

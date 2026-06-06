@@ -8,7 +8,7 @@ import { ChatRoom } from "@/components/chat-room";
 import { RevealCard } from "@/components/reveal-card";
 import { ShareButton } from "@/components/share-button";
 import { InviteFriends } from "@/components/invite-friends";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Link2 } from "lucide-react";
 
 export function RoomClient({ initial, userId }: { initial: RoomState; userId: string }) {
   const [state, setState] = useState<RoomState>(initial);
@@ -48,11 +48,16 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
           </Link>
           <h2 className="truncate font-display text-lg font-semibold">{state.question}</h2>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {state.is_host && !revealed && <InviteFriends roomId={state.id} />}
-          <ShareButton code={state.code} />
-        </div>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+          <Link2 className="size-3" />
+          {state.code}
+        </span>
       </header>
+
+      <div className={`grid gap-2 pb-3 ${state.is_host && !revealed ? "grid-cols-2" : "grid-cols-1"}`}>
+        {state.is_host && !revealed && <InviteFriends roomId={state.id} className="w-full" />}
+        <ShareButton code={state.code} className="w-full" />
+      </div>
 
       {revealed ? (
         <div className="flex-1 overflow-y-auto">

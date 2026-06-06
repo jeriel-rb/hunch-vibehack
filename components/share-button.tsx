@@ -1,10 +1,19 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 
-export function ShareButton({ code }: { code: string }) {
+export function ShareButton({
+  code,
+  className,
+  label = "Share link",
+}: {
+  code: string;
+  className?: string;
+  label?: string;
+}) {
   async function share() {
     const url = `${location.origin}/room/${code}`;
     if (navigator.share) {
@@ -20,9 +29,9 @@ export function ShareButton({ code }: { code: string }) {
   }
 
   return (
-    <Button variant="secondary" size="sm" onClick={share}>
+    <Button variant="secondary" size="sm" className={cn("h-11 rounded-2xl", className)} onClick={share}>
       <Share2 className="size-4" />
-      Share
+      {label}
     </Button>
   );
 }

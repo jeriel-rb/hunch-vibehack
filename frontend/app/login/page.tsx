@@ -33,6 +33,7 @@ function AuthInner() {
 
     setLoading(true);
     const supabase = createClient();
+    const emailRedirectTo = `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 
     const { data: available } = await supabase.rpc("username_available", { p_username: handle });
     if (available === false) {
@@ -43,7 +44,7 @@ function AuthInner() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username: handle, display_name: handle } },
+      options: { data: { username: handle, display_name: handle }, emailRedirectTo },
     });
     setLoading(false);
 
@@ -94,11 +95,28 @@ function AuthInner() {
         </div>
 
         <div className="rounded-[1.75rem] border border-border/60 bg-card/70 p-5 shadow-xl shadow-foreground/6 backdrop-blur-xl">
-          <Tabs defaultValue="signup">
+          <Tabs defaultValue="login">
             <TabsList className="w-full rounded-2xl bg-secondary/70 p-1">
-              <TabsTrigger className="flex-1 rounded-xl" value="signup">Create account</TabsTrigger>
               <TabsTrigger className="flex-1 rounded-xl" value="login">Log in</TabsTrigger>
+              <TabsTrigger className="flex-1 rounded-xl" value="signup">Create account</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="login" className="stagger mt-5 flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="li-email">Email</Label>
+                <Input id="li-email" type="email" inputMode="email" autoComplete="email" value={email}
+                  onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="li-password">Password</Label>
+                <Input id="li-password" type="password" autoComplete="current-password" value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && logIn()} />
+              </div>
+              <Button className="mt-1 h-12 text-base glow-primary" onClick={logIn} disabled={loading || !email || !password}>
+                {loading ? "Signing in…" : "Log in"}
+              </Button>
+            </TabsContent>
 
             <TabsContent value="signup" className="stagger mt-5 flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
@@ -118,23 +136,6 @@ function AuthInner() {
               </div>
               <Button className="mt-1 h-12 text-base glow-primary" onClick={signUp} disabled={loading || !email || !password || !username}>
                 {loading ? "Creating…" : "Create account"}
-              </Button>
-            </TabsContent>
-
-            <TabsContent value="login" className="stagger mt-5 flex flex-col gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="li-email">Email</Label>
-                <Input id="li-email" type="email" inputMode="email" autoComplete="email" value={email}
-                  onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="li-password">Password</Label>
-                <Input id="li-password" type="password" autoComplete="current-password" value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && logIn()} />
-              </div>
-              <Button className="mt-1 h-12 text-base glow-primary" onClick={logIn} disabled={loading || !email || !password}>
-                {loading ? "Signing in…" : "Log in"}
               </Button>
             </TabsContent>
           </Tabs>
