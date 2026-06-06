@@ -15,12 +15,17 @@ import { Lock, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export function CategoryGrid({ isPro }: { isPro: boolean }) {
+export function CategoryGrid({ isPro, hasCredits }: { isPro: boolean; hasCredits: boolean }) {
   const router = useRouter();
   const [proOpen, setProOpen] = useState(false);
 
-  function pick(key: string, locked: boolean) {
-    if (locked) {
+  function pick(key: string, proLocked: boolean, creditLocked: boolean) {
+    if (creditLocked) {
+      toast.error("You're out of credits");
+      return;
+    }
+
+    if (proLocked) {
       setProOpen(true);
       return;
     }
@@ -31,17 +36,20 @@ export function CategoryGrid({ isPro }: { isPro: boolean }) {
     <>
       <div className="stagger grid grid-cols-2 gap-3">
         {CATEGORIES.map((c) => {
-          const locked = c.pro && !isPro;
+          const proLocked = c.pro && !isPro;
+          const creditLocked = !hasCredits;
+          const locked = proLocked || creditLocked;
           const Icon = c.icon;
           return (
             <button
               key={c.key}
-              onClick={() => pick(c.key, locked)}
+              onClick={() => pick(c.key, proLocked, creditLocked)}
               className="lift group relative flex flex-col items-start overflow-hidden rounded-3xl border border-border/60 bg-card p-4 text-left shadow-sm ring-1 ring-foreground/3 hover:shadow-md"
             >
               {locked && (
                 <span className="absolute right-2.5 top-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-[11px] font-semibold text-primary ring-1 ring-primary/20">
-                  <Lock className="size-3" /> Pro
+                  <Lock className="size-3" />
+                  {creditLocked ? "0 credits" : "Pro"}
                 </span>
               )}
               <span

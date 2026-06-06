@@ -16,11 +16,11 @@ export default async function CreatePage({ params }: { params: Promise<{ categor
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/create/${category}`);
 
+  const { data: profile } = await supabase.from("profiles").select("is_pro, credits").eq("id", user.id).single();
+  if (!profile || profile.credits <= 0) redirect("/");
+
   // Pro gate: locked categories require is_pro.
-  if (meta.pro) {
-    const { data: profile } = await supabase.from("profiles").select("is_pro").eq("id", user.id).single();
-    if (!profile?.is_pro) redirect("/");
-  }
+  if (meta.pro && !profile.is_pro) redirect("/");
 
   return (
     <main className="stagger mx-auto flex min-h-dvh max-w-md flex-col gap-5 p-6">

@@ -11,12 +11,17 @@ function normalizeCode(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
 }
 
-export function JoinRoomCode() {
+export function JoinRoomCode({ hasCredits = true }: { hasCredits?: boolean }) {
   const router = useRouter();
   const [code, setCode] = useState("");
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!hasCredits) {
+      toast.error("You're out of credits");
+      return;
+    }
+
     const roomCode = normalizeCode(code);
     if (roomCode.length !== 6) {
       toast.error("Enter the 6-character room code");
@@ -36,13 +41,20 @@ export function JoinRoomCode() {
       <Input
         aria-label="Room code"
         className="h-10 border-0 bg-transparent px-1 text-center font-display text-lg font-semibold tracking-[0.22em] shadow-none focus-visible:ring-0"
+        disabled={!hasCredits}
         inputMode="text"
         maxLength={6}
         placeholder="CODE"
         value={code}
         onChange={(event) => setCode(normalizeCode(event.target.value))}
       />
-      <Button type="submit" size="icon" className="size-10 shrink-0 rounded-2xl glow-primary" aria-label="Join room">
+      <Button
+        type="submit"
+        size="icon"
+        className="size-10 shrink-0 rounded-2xl glow-primary"
+        aria-label="Join room"
+        disabled={!hasCredits}
+      >
         <LogIn className="size-4" />
       </Button>
     </form>

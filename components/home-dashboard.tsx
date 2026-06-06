@@ -28,6 +28,8 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
   const [home, setHome] = useState<HomeData>(initial);
   const [supabase] = useState(() => createClient());
   const [decliningInvite, setDecliningInvite] = useState<string | null>(null);
+  const credits = home.profile.credits ?? 0;
+  const hasCredits = credits > 0;
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.rpc("get_home");
@@ -96,6 +98,10 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary/10 px-3 text-sm font-semibold text-primary">
+            <Ticket className="size-4" />
+            {credits}
+          </span>
           <Button
             variant="secondary"
             size="sm"
@@ -195,8 +201,8 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
         <h2 className="font-display text-lg font-semibold">
           What are we deciding?
         </h2>
-        <CategoryGrid isPro={home.profile.is_pro} />
-        <JoinRoomCode />
+        <CategoryGrid isPro={home.profile.is_pro} hasCredits={hasCredits} />
+        <JoinRoomCode hasCredits={hasCredits} />
       </section>
 
       <RoomHistory

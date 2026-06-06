@@ -492,6 +492,7 @@ function WaitingRoom({
   const host = members.find((member) => member.role === "host");
   const me = members.find((member) => member.id === userId);
   const isPendingInvite = state.invite_status === "pending" && !state.is_host;
+  const hasCredits = state.my_credits > 0;
 
   const title = isPendingInvite
     ? "You're invited"
@@ -532,13 +533,13 @@ function WaitingRoom({
         <div className="relative grid grid-cols-[1fr_auto] gap-2">
           <Button
             className="h-12 rounded-2xl text-base glow-primary"
-            disabled={accepting || declining}
+            disabled={accepting || declining || !hasCredits}
             onClick={onAccept}
           >
             {accepting
               ? <Loader2 className="size-4 animate-spin" />
               : <CheckCircle2 className="size-4" />}
-            Accept invite
+            {hasCredits ? "Accept invite" : "No credits left"}
           </Button>
           <Button
             variant="destructive"

@@ -87,6 +87,7 @@ export interface RoomState {
   place_options: PlaceOption[];
   my_place_vote: string | null;
   votes_cast: number;
+  my_credits: number;
 }
 
 // ---- Social ----
@@ -96,6 +97,7 @@ export interface Profile {
   username: string;
   display_name: string | null;
   is_pro: boolean;
+  credits: number;
 }
 
 export interface FriendUser {
