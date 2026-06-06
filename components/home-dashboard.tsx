@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { CategoryGrid } from "@/components/category-grid";
+import { JoinRoomCode } from "@/components/join-room-code";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -73,6 +74,7 @@ export function HomeDashboard({ initial }: { initial: HomeData }) {
       <section className="flex flex-col gap-3">
         <h2 className="font-display text-lg font-semibold">What are we deciding?</h2>
         <CategoryGrid isPro={home.profile.is_pro} />
+        <JoinRoomCode />
       </section>
 
       {home.invites.length > 0 && (
