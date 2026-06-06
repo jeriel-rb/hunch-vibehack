@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"=== tsc exit: $? ===\")",
+      "Bash(npm ci *)",
+      "Bash(grep -rniE \"minimum_password|password_length|min.{0,3}password\" . --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.git)",
+      "Bash(npm --prefix /Users/jeriel/Documents/hunch-ai-consensus-engine/frontend run build)"
+    ]
+  }
+}
