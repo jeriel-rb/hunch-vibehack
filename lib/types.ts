@@ -11,15 +11,30 @@ export interface Venue {
   walk_minutes: number | null;
 }
 
+export interface PlaceOption {
+  id: string;
+  option_index: number;
+  cuisine: string;
+  rationale: string;
+  reasons: string[];
+  ruled_out: string[];
+  venue: Venue;
+}
+
 export interface RevealResult {
   summary: string;
   cuisine: string;
   reasons: string[];
   ruled_out: string[];
   venue: Venue | null;
+  options?: PlaceOption[];
+  selected_option_id?: string;
+  consensus_copy?: string;
+  success_title?: string;
+  success_copy?: string;
 }
 
-export type RoomStatus = "waiting" | "open" | "revealing" | "revealed";
+export type RoomStatus = "waiting" | "open" | "choosing" | "revealing" | "revealed";
 export type RoomInviteStatus = "pending" | "accepted" | "declined";
 export type Category = "eat" | "travel" | "watch" | "other";
 
@@ -52,6 +67,8 @@ export interface RoomState {
   status: RoomStatus;
   round: number;
   followups: string[];
+  private_prompt: string | null;
+  private_prompts: string[];
   participant_count: number;
   answered_count: number;
   my_answers: ResponseAnswers;
@@ -60,6 +77,9 @@ export interface RoomState {
   responses: { label: string; answers: ResponseAnswers }[] | null;
   invite_status: RoomInviteStatus | null;
   members: RoomMember[];
+  place_options: PlaceOption[];
+  my_place_vote: string | null;
+  votes_cast: number;
 }
 
 // ---- Social ----

@@ -1,20 +1,9 @@
 import Image from "next/image";
-import { Check, MapPin, Star } from "lucide-react";
+import { Check, MapPin, Sparkles, Star, Trophy } from "lucide-react";
 import type { RevealResult, ResponseAnswers } from "@/lib/types";
-
-function summarize(a: ResponseAnswers): string {
-  const parts: string[] = [];
-  if (a.budget) parts.push(a.budget);
-  if (a.style && a.style !== "anything") parts.push(a.style);
-  if (a.avoid && a.avoid !== "nothing") parts.push(`no ${a.avoid}`);
-  if (a.freestyle) parts.push(`"${a.freestyle}"`);
-  (a.followups ?? []).filter(Boolean).forEach((f) => parts.push(`"${f}"`));
-  return parts.join(" · ") || "no strong preference";
-}
 
 export function RevealCard({
   result,
-  responses,
 }: {
   result: RevealResult;
   responses: { label: string; answers: ResponseAnswers }[];
@@ -23,11 +12,22 @@ export function RevealCard({
 
   return (
     <div className="flex flex-col gap-4 pb-6">
-      <div className="animate-pop rounded-3xl border border-success/40 bg-card p-5 shadow-lg shadow-success/10 ring-1 ring-success/10">
-        <p className="text-xs font-semibold uppercase tracking-wide text-success">The pick</p>
+      <div className="animate-pop relative overflow-hidden rounded-3xl border border-success/40 bg-card p-5 shadow-lg shadow-success/10 ring-1 ring-success/10">
+        <div className="pointer-events-none absolute -right-8 -top-10 size-28 rounded-full border border-success/25 animate-pulse" />
+        <div className="pointer-events-none absolute right-10 top-8 text-primary/25">
+          <Sparkles className="size-8 animate-pulse" />
+        </div>
+
+        <p className="inline-flex items-center gap-1.5 rounded-full bg-success-bg px-3 py-1 text-xs font-semibold uppercase tracking-wide text-success">
+          <Trophy className="size-3.5" />
+          {result.success_title ?? "Consensus unlocked"}
+        </p>
         <h3 className="mt-1 font-display text-3xl font-semibold leading-tight">
           {v?.name ?? result.cuisine}
         </h3>
+        <p className="mt-1 text-[15px] leading-snug text-muted-foreground">
+          {result.success_copy ?? result.consensus_copy ?? "Everyone found the yes. The group chat may now rest."}
+        </p>
 
         {v ? (
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
@@ -80,22 +80,33 @@ export function RevealCard({
           </a>
         )}
 
-        <p className="mt-4 text-[15px] italic text-muted-foreground">…and nobody had to say it first.</p>
+        <p className="mt-4 text-[15px] italic text-muted-foreground">Hunch found the overlap. Nobody had to campaign for it.</p>
       </div>
 
-      {responses.length > 0 && (
-        <details className="rounded-3xl border border-border bg-card p-4">
-          <summary className="cursor-pointer text-[15px] text-muted-foreground">
-            What everyone said (now revealed)
-          </summary>
-          <ul className="mt-3 flex flex-col gap-2">
-            {responses.map((r) => (
-              <li key={r.label} className="text-[15px]">
-                <span className="font-semibold text-primary">{r.label}.</span> {summarize(r.answers)}
-              </li>
+      {result.options && result.options.length > 1 && (
+        <div className="rounded-3xl border border-border bg-card p-4">
+          <h4 className="font-display text-lg font-semibold">The three contenders</h4>
+          <div className="mt-3 flex flex-col gap-2">
+            {result.options.map((option) => (
+              <div
+                key={option.id}
+                className={`flex items-center justify-between gap-3 rounded-2xl border p-3 ${
+                  option.id === result.selected_option_id ? "border-primary/40 bg-primary/10" : "border-border/60 bg-background/70"
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{option.venue.name}</span>
+                  <span className="block truncate text-sm text-muted-foreground">{option.cuisine}</span>
+                </span>
+                {option.id === result.selected_option_id && (
+                  <span className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                    Winner
+                  </span>
+                )}
+              </div>
             ))}
-          </ul>
-        </details>
+          </div>
+        </div>
       )}
     </div>
   );

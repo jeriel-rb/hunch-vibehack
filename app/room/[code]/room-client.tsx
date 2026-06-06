@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import type { RoomMember, RoomState } from "@/lib/types";
+import type { PlaceOption, RoomMember, RoomState } from "@/lib/types";
 import { ChatRoom } from "@/components/chat-room";
 import { RevealCard } from "@/components/reveal-card";
 import { ShareButton } from "@/components/share-button";
@@ -11,13 +12,14 @@ import { InviteFriends } from "@/components/invite-friends";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BellRing, CheckCircle2, ChevronLeft, Clock3, Link2, Loader2, LockKeyhole, Sparkles, Users } from "lucide-react";
+import { BellRing, CheckCircle2, ChevronLeft, Clock3, Link2, Loader2, LockKeyhole, MapPin, Sparkles, Star, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export function RoomClient({ initial, userId }: { initial: RoomState; userId: string }) {
   const [state, setState] = useState<RoomState>(initial);
   const [supabase] = useState(() => createClient());
   const [accepting, setAccepting] = useState(false);
+  const [voting, setVoting] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.rpc("get_room_state", { p_code: initial.code });
@@ -37,6 +39,16 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
         { event: "*", schema: "public", table: "room_invites", filter: `room_id=eq.${initial.id}` },
         () => refresh(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_place_options", filter: `room_id=eq.${initial.id}` },
+        () => refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_place_votes", filter: `room_id=eq.${initial.id}` },
+        () => refresh(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -52,8 +64,18 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
     refresh();
   }
 
+  async function vote(optionId: string) {
+    setVoting(optionId);
+    const { error } = await supabase.rpc("vote_place_option", { p_option_id: optionId });
+    setVoting(null);
+    if (error) return toast.error(error.message);
+    toast.success("Your pick is locked");
+    refresh();
+  }
+
   const revealed = state.status === "revealed" && state.result;
   const waiting = state.status === "waiting";
+  const choosing = state.status === "choosing";
 
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col p-5">
@@ -82,6 +104,8 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
 
       {waiting ? (
         <WaitingRoom state={state} userId={userId} accepting={accepting} onAccept={acceptInvite} />
+      ) : choosing ? (
+        <PlaceVoting state={state} voting={voting} onVote={vote} />
       ) : revealed ? (
         <div className="flex-1 overflow-y-auto">
           <RevealCard result={state.result!} responses={state.responses ?? []} />
@@ -90,6 +114,134 @@ export function RoomClient({ initial, userId }: { initial: RoomState; userId: st
         <ChatRoom state={state} onRefresh={refresh} />
       )}
     </main>
+  );
+}
+
+function PlaceVoting({
+  state,
+  voting,
+  onVote,
+}: {
+  state: RoomState;
+  voting: string | null;
+  onVote: (optionId: string) => void;
+}) {
+  const options = state.place_options ?? [];
+  const selected = state.my_place_vote;
+  const locked = Boolean(selected);
+
+  return (
+    <section className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
+      <div className="rounded-3xl border border-primary/20 bg-card p-4 shadow-sm ring-1 ring-primary/10">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">The shortlist</p>
+        <h3 className="mt-1 font-display text-2xl font-semibold tracking-tight">Pick your yes</h3>
+        <p className="mt-1 text-[15px] leading-snug text-muted-foreground">
+          Hunch found three real places. Your vote is private until consensus lands.
+        </p>
+        <div className="mt-3 rounded-2xl bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">
+          {locked
+            ? `${state.votes_cast} of ${state.participant_count} locked in. Waiting for the room.`
+            : `Choose one. Majority wins when more than half agree.`}
+        </div>
+      </div>
+
+      {options.length === 0 ? (
+        <div className="grid flex-1 place-items-center rounded-3xl border border-border bg-card p-6 text-center text-muted-foreground">
+          <div>
+            <Sparkles className="mx-auto mb-2 size-5 animate-pulse text-primary" />
+            Hunch is setting the table...
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {options.map((option) => (
+            <PlaceOptionCard
+              key={option.id}
+              option={option}
+              selected={selected === option.id}
+              disabled={voting !== null}
+              loading={voting === option.id}
+              onVote={() => onVote(option.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PlaceOptionCard({
+  option,
+  selected,
+  disabled,
+  loading,
+  onVote,
+}: {
+  option: PlaceOption;
+  selected: boolean;
+  disabled: boolean;
+  loading: boolean;
+  onVote: () => void;
+}) {
+  const venue = option.venue;
+
+  return (
+    <article
+      className={`overflow-hidden rounded-3xl border bg-card shadow-sm ring-1 transition ${
+        selected ? "border-primary/45 ring-primary/25 shadow-primary/10" : "border-border/70 ring-foreground/3"
+      }`}
+    >
+      {venue.photo_url && (
+        <Image
+          src={venue.photo_url}
+          alt={venue.name}
+          width={640}
+          height={300}
+          unoptimized
+          className="h-36 w-full object-cover"
+        />
+      )}
+      <div className="flex flex-col gap-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Option {option.option_index}</p>
+            <h4 className="mt-1 truncate font-display text-xl font-semibold">{venue.name}</h4>
+            <p className="mt-1 text-sm text-muted-foreground">{option.cuisine}</p>
+          </div>
+          {selected && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+              <CheckCircle2 className="size-3.5" />
+              Picked
+            </span>
+          )}
+        </div>
+
+        <p className="text-[15px] leading-snug text-muted-foreground">{option.rationale}</p>
+
+        <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+          {venue.walk_minutes != null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1">
+              <MapPin className="size-3.5" />
+              {venue.walk_minutes} min
+            </span>
+          )}
+          {venue.rating != null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1">
+              <Star className="size-3.5 fill-current" />
+              {venue.rating}
+            </span>
+          )}
+          {venue.price_level != null && (
+            <span className="rounded-full bg-secondary px-2.5 py-1">{"$".repeat(venue.price_level)}</span>
+          )}
+        </div>
+
+        <Button className="h-11 w-full rounded-2xl glow-primary" disabled={disabled} onClick={onVote}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : selected ? <CheckCircle2 className="size-4" /> : <Sparkles className="size-4" />}
+          {selected ? "Your private pick" : "Pick this place"}
+        </Button>
+      </div>
+    </article>
   );
 }
 

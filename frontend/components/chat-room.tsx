@@ -37,7 +37,9 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
   const activeRound0: ScriptedRound | undefined = inRound0
     ? EAT_ROUNDS.find((r) => answers[r.key] === undefined)
     : undefined;
-  const activeFollowup = !caughtUp && state.round > 0 ? state.followups[state.round - 1] : undefined;
+  const activeFollowup = !caughtUp && state.round > 0
+    ? state.private_prompt ?? state.followups[state.round - 1]
+    : undefined;
 
   // Build the visible conversation from answers + the room's follow-ups.
   const history: Bubble[] = [
@@ -50,7 +52,8 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
     history.push({ from: "me", text: labelFor(v) || "(skipped)" });
   }
   (answers.followups ?? []).forEach((ans, k) => {
-    if (state.followups[k]) history.push({ from: "ai", text: state.followups[k] });
+    const prompt = state.private_prompts?.[k] ?? state.followups[k];
+    if (prompt) history.push({ from: "ai", text: prompt });
     history.push({ from: "me", text: ans || "(skipped)" });
   });
 
@@ -211,9 +214,9 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
       {/* Host reveal control */}
       {state.is_host && state.status !== "revealing" && (
         <div className="border-t border-border pt-3">
-          <Button className="h-12 w-full rounded-full text-base glow-primary" disabled={revealing || ready === 0} onClick={reveal}>
+          <Button className="h-12 w-full rounded-full text-base glow-primary" disabled={revealing || ready < total} onClick={reveal}>
             <Sparkles className="size-4" />
-            {revealing ? "Finding…" : `Find the yes (${ready}/${total})`}
+            {revealing ? "Finding…" : ready < total ? `Waiting for everyone (${ready}/${total})` : "Build the 3 picks"}
           </Button>
         </div>
       )}
