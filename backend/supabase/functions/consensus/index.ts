@@ -1,6 +1,6 @@
 /// <reference path="../_shared/edge-runtime.d.ts" />
 
-import OpenAI from "openai";
+import OpenAI from "npm:openai@4.104.0";
 
 type RoomSubmission = {
   user_name: string;
