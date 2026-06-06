@@ -61,12 +61,9 @@ export default async function Home() {
         </p>
 
         <div className="flex flex-col gap-3">
-          <Button className="h-12 text-base glow-primary" nativeButton={false} render={<Link href="/login?next=/create/eat" />}>
-            Start a room
+          <Button className="h-12 text-base glow-primary" nativeButton={false} render={<Link href="/login" />}>
+            Get started
             <ArrowRight className="size-4" />
-          </Button>
-          <Button variant="secondary" className="h-12 text-base" nativeButton={false} render={<Link href="/login" />}>
-            Log in
           </Button>
         </div>
 
