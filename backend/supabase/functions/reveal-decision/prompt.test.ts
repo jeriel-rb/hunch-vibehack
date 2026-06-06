@@ -20,6 +20,12 @@ Deno.test("prompt is direction-first", () => {
   assert(SYSTEM_PROMPT.includes("OPTIONS"));
 });
 
+Deno.test("prompt forbids direction bait-and-switch", () => {
+  // Follow-ups must aim at the leading direction and the committed direction must match.
+  assert(SYSTEM_PROMPT.includes("Ask about the direction you will actually deliver"));
+  assert(SYSTEM_PROMPT.includes("Never ask about one cuisine and serve another"));
+});
+
 Deno.test("rejects follow-up plans with no usable private question", () => {
   assertThrows(() =>
     parseDecisionPlan(JSON.stringify({
