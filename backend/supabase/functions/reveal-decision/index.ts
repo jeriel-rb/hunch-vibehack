@@ -36,6 +36,8 @@ Deno.serve(async (req) => {
     if (!room) return json({ error: "room not found" }, 404);
     if (room.host_id !== user.id) return json({ error: "only the host can reveal" }, 403);
     if (room.status === "revealed") return json(room.result); // idempotent
+    if (room.status === "waiting") return json({ error: "waiting for invited members" }, 409);
+    if (room.status !== "open") return json({ error: "room is not open" }, 409);
 
     await admin.from("rooms").update({ status: "revealing" }).eq("id", room_id);
 

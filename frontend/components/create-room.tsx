@@ -153,7 +153,9 @@ export function CreateRoom({
               </span>
               <div className="leading-tight">
                 <p className="font-semibold">Members first</p>
-                <p className="text-[13px] text-muted-foreground">{memberCount} in this room</p>
+                <p className="text-[13px] text-muted-foreground">
+                  {selectedMembers.length === 0 ? "Solo room" : `${selectedMembers.length} invite${selectedMembers.length === 1 ? "" : "s"} to accept`}
+                </p>
               </div>
             </div>
             <Button variant="secondary" size="sm" render={<Link href="/friends" />}>
@@ -170,7 +172,7 @@ export function CreateRoom({
             </div>
           ) : friends.length === 0 ? (
             <p className="rounded-2xl bg-card/70 px-3 py-2.5 text-[14px] leading-snug text-muted-foreground">
-              Add friends first, or start with yourself and share the room link after entry.
+              Add friends first, or start solo and share the room code after entry.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -202,7 +204,11 @@ export function CreateRoom({
         </section>
 
         <Button className="h-12 text-base glow-primary" onClick={start} disabled={loading || launching !== null}>
-          {loading ? "Starting…" : `Start with ${memberCount} member${memberCount === 1 ? "" : "s"}`}
+          {loading
+            ? "Creating…"
+            : selectedMembers.length === 0
+              ? "Start solo"
+              : `Invite ${selectedMembers.length} and wait`}
         </Button>
       </div>
     </>
@@ -221,10 +227,10 @@ function RoomLaunchSplash({ code, count }: { code: string; count: number }) {
           <span />
           <span />
         </div>
-        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Room armed</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Waiting room</p>
         <h2 className="font-display text-4xl font-semibold tracking-tight">{code}</h2>
         <p className="text-sm text-muted-foreground">
-          {count} member{count === 1 ? "" : "s"} entering together
+          {count === 1 ? "Solo room opening" : `${count - 1} invite${count === 2 ? "" : "s"} sent`}
         </p>
         <div className="launch-bar" aria-hidden="true" />
       </div>

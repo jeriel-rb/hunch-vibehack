@@ -12,7 +12,8 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/room/${code}`);
 
-  // Idempotent join, then load the full state for this caller.
+  // Idempotent join for open rooms; waiting-room invitees only get view access
+  // until they explicitly accept.
   await supabase.rpc("join_room", { p_code: code });
   const { data, error } = await supabase.rpc("get_room_state", { p_code: code });
   if (error || !data) redirect("/");

@@ -8,6 +8,8 @@ import type { HomeData } from "@/lib/types";
 
 export default async function Home() {
   let user = null;
+  let homeData: HomeData | null = null;
+
   try {
     const supabase = await createClient();
     ({
@@ -16,11 +18,13 @@ export default async function Home() {
 
     if (user) {
       const { data } = await supabase.rpc("get_home");
-      if (data) return <HomeDashboard initial={data as unknown as HomeData} />;
+      if (data) homeData = data as unknown as HomeData;
     }
   } catch {
     // Supabase not configured yet — fall through to the landing.
   }
+
+  if (homeData) return <HomeDashboard initial={homeData} />;
 
   return (
     <main className="relative isolate flex min-h-dvh overflow-hidden p-6">

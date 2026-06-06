@@ -19,7 +19,8 @@ export interface RevealResult {
   venue: Venue | null;
 }
 
-export type RoomStatus = "open" | "revealing" | "revealed";
+export type RoomStatus = "waiting" | "open" | "revealing" | "revealed";
+export type RoomInviteStatus = "pending" | "accepted" | "declined";
 export type Category = "eat" | "travel" | "watch" | "other";
 
 // A participant's private answers, accumulated across rounds.
@@ -29,6 +30,15 @@ export interface ResponseAnswers {
   avoid?: string;
   freestyle?: string;
   followups?: string[];
+}
+
+export interface RoomMember {
+  id: string;
+  username: string;
+  display_name: string | null;
+  role: "host" | "member";
+  status: RoomInviteStatus;
+  is_current_user: boolean;
 }
 
 export interface RoomState {
@@ -48,6 +58,8 @@ export interface RoomState {
   my_round: number; // highest round this user has completed (-1 = none)
   result: RevealResult | null;
   responses: { label: string; answers: ResponseAnswers }[] | null;
+  invite_status: RoomInviteStatus | null;
+  members: RoomMember[];
 }
 
 // ---- Social ----
@@ -68,9 +80,11 @@ export interface FriendUser {
 }
 
 export interface RoomInvite {
+  room_id: string;
   code: string;
   question: string;
   category: Category;
+  status: "pending";
   inviter: string;
 }
 

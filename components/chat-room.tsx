@@ -21,16 +21,16 @@ interface Bubble {
 }
 
 export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: () => void }) {
-  const [answers, setAnswers] = useState<ResponseAnswers>(state.my_answers ?? {});
+  const stateKey = `${state.id}:${state.round}:${state.my_round}`;
+  const [draft, setDraft] = useState<{ key: string; answers: ResponseAnswers }>(() => ({
+    key: stateKey,
+    answers: state.my_answers ?? {},
+  }));
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  // Keep local answers in sync when the server state advances (e.g. new round).
-  useEffect(() => {
-    setAnswers(state.my_answers ?? {});
-  }, [state.my_answers, state.round]);
+  const answers = draft.key === stateKey ? draft.answers : state.my_answers ?? {};
 
   const caughtUp = state.my_round >= state.round;
   const inRound0 = state.round === 0 && state.my_round < 0;
@@ -74,7 +74,7 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
 
   function pickRound0(round: ScriptedRound, value: string) {
     const updated = { ...answers, [round.key]: value };
-    setAnswers(updated);
+    setDraft({ key: stateKey, answers: updated });
     // Freestyle is the last step → submit the whole set.
     if (round.key === "freestyle" || EAT_ROUNDS.indexOf(round) === EAT_ROUNDS.length - 1) {
       save(updated);

@@ -42,7 +42,7 @@ export function InviteFriends({
     const { error } = await supabase.rpc("invite_to_room", { p_room_id: roomId, p_friend: u.id });
     if (error) return toast.error(error.message);
     setInvited((prev) => new Set(prev).add(u.id));
-    toast.success(`Invited @${u.username}`);
+    toast.success(`Invite sent to @${u.username}`);
   }
 
   return (
