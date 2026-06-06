@@ -1,23 +1,41 @@
 import { NextResponse } from "next/server";
 
-// Resolves a typed area (e.g. "Shibuya, Tokyo") to coordinates at create time,
-// so rooms always store concrete lat/lng and the edge function never geocodes.
+// Resolves a location to coordinates + a readable label at create time, so rooms
+// always store concrete lat/lng and the edge function never geocodes. Supports
+// forward (?q=area) and reverse (?lat=..&lng=..) lookups — the latter turns the
+// creator's device coordinates into a clean area label.
 export async function GET(request: Request) {
-  const q = new URL(request.url).searchParams.get("q")?.trim();
-  if (!q) return NextResponse.json({ error: "q required" }, { status: 400 });
+  const params = new URL(request.url).searchParams;
+  const q = params.get("q")?.trim();
+  const lat = params.get("lat");
+  const lng = params.get("lng");
 
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) return NextResponse.json({ error: "geocoding not configured" }, { status: 503 });
 
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&key=${key}`;
-  const res = await fetch(url);
+  const reverse = Boolean(lat && lng);
+  if (!reverse && !q) return NextResponse.json({ error: "q or lat/lng required" }, { status: 400 });
+
+  const query = reverse
+    ? `latlng=${encodeURIComponent(`${lat},${lng}`)}`
+    : `address=${encodeURIComponent(q!)}`;
+  const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${query}&key=${key}`);
   const data = await res.json();
-  const r = data.results?.[0];
+  const results = (data.results ?? []) as Array<{
+    formatted_address: string;
+    types?: string[];
+    geometry: { location: { lat: number; lng: number } };
+  }>;
+
+  // For reverse lookups, prefer a city/neighborhood result over a precise street address.
+  const r = reverse
+    ? results.find((x) => (x.types ?? []).some((t) => t === "locality" || t === "sublocality")) ?? results[0]
+    : results[0];
   if (!r) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   return NextResponse.json({
-    label: r.formatted_address as string,
-    lat: r.geometry.location.lat as number,
-    lng: r.geometry.location.lng as number,
+    label: r.formatted_address,
+    lat: r.geometry.location.lat,
+    lng: r.geometry.location.lng,
   });
 }

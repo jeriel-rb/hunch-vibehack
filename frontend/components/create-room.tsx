@@ -65,17 +65,45 @@ export function CreateRoom({
     });
   }
 
-  function useMyLocation() {
-    if (!navigator.geolocation) return toast.error("Geolocation not available");
+  async function resolveLabel(lat: number, lng: number): Promise<string> {
+    try {
+      const r = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+      if (r.ok) {
+        const g = await r.json();
+        if (g.label) return g.label as string;
+      }
+    } catch {
+      // fall through to a generic label
+    }
+    return "My current location";
+  }
+
+  function captureLocation({ announce }: { announce: boolean }) {
+    if (!navigator.geolocation) {
+      if (announce) toast.error("Geolocation not available");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setArea("My current location");
-        toast.success("Location set");
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        setArea(await resolveLabel(lat, lng));
+        if (announce) toast.success("Location set");
       },
-      () => toast.error("Couldn't get your location — type an area instead"),
+      () => {
+        if (announce) toast.error("Couldn't get your location — type an area instead");
+      },
     );
   }
+
+  // Default to the creator's location so picks are near them, not on the other
+  // side of the world. Runs once; silent if denied (they can type an area).
+  useEffect(() => {
+    if (!needsLocation) return;
+    captureLocation({ announce: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsLocation]);
 
   async function start() {
     setLoading(true);
@@ -83,6 +111,11 @@ export function CreateRoom({
     let lat = coords?.lat ?? null;
     let lng = coords?.lng ?? null;
     let label = area.trim() || null;
+
+    if (needsLocation && lat == null && !area.trim()) {
+      setLoading(false);
+      return toast.error("Add a location so Hunch finds spots near you");
+    }
 
     if (needsLocation && lat == null && area.trim()) {
       const r = await fetch(`/api/geocode?q=${encodeURIComponent(area)}`);
@@ -138,7 +171,7 @@ export function CreateRoom({
                   setCoords(null);
                 }}
               />
-              <Button type="button" variant="secondary" size="icon" className="size-12 shrink-0 rounded-xl" aria-label="Use my location" onClick={useMyLocation}>
+              <Button type="button" variant="secondary" size="icon" className="size-12 shrink-0 rounded-xl" aria-label="Use my location" onClick={() => captureLocation({ announce: true })}>
                 <MapPin className="size-4" />
               </Button>
             </div>
