@@ -4,7 +4,14 @@
       "Bash(echo \"=== tsc exit: $? ===\")",
       "Bash(npm ci *)",
       "Bash(grep -rniE \"minimum_password|password_length|min.{0,3}password\" . --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.git)",
-      "Bash(npm --prefix /Users/jeriel/Documents/hunch-ai-consensus-engine/frontend run build)"
+      "Bash(npm --prefix /Users/jeriel/Documents/hunch-ai-consensus-engine/frontend run build)",
+      "Bash(echo \"frontend tsc exit: $?\")",
+      "Bash(env -u SUPABASE_ACCESS_TOKEN supabase projects list)",
+      "Bash(env -u SUPABASE_ACCESS_TOKEN supabase link --project-ref jdzcgsdtwsassowfooar)",
+      "Bash(env -u SUPABASE_ACCESS_TOKEN supabase functions deploy reveal-decision)",
+      "Bash(env -u SUPABASE_ACCESS_TOKEN supabase db push --dry-run)",
+      "Bash(env -u SUPABASE_ACCESS_TOKEN supabase db push)",
+      "Bash(env -u SUPABASE_ACCESS_TOKEN supabase migration list)"
     ]
   }
 }

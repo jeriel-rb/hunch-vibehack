@@ -104,7 +104,8 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
     setRevealing(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) return toast.error(data.error ?? "Reveal failed — try again");
-    if (data.consensus === false) toast("Still split — one more question for everyone");
+    // No "still split" messaging — a follow-up round just surfaces quietly as the
+    // next Hunch question. The goal is to find shared ground, not flag disagreement.
     onRefresh();
   }
 
@@ -162,6 +163,18 @@ export function ChatRoom({ state, onRefresh }: { state: RoomState; onRefresh: ()
               </div>
             )}
           </>
+        )}
+
+        {/* Active follow-up question (free-text answer via the input below) */}
+        {activeFollowup && (
+          <div className="animate-fade-up max-w-[85%]">
+            <div className="mb-1 flex items-center gap-1 text-xs font-medium text-primary">
+              <Sparkles className="size-3" /> Hunch
+            </div>
+            <div className="rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5 text-base leading-snug shadow-sm ring-1 ring-foreground/3">
+              {activeFollowup}
+            </div>
+          </div>
         )}
 
         {caughtUp && state.status !== "revealing" && (

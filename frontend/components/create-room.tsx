@@ -158,7 +158,7 @@ export function CreateRoom({
                 </p>
               </div>
             </div>
-            <Button variant="secondary" size="sm" render={<Link href="/friends" />}>
+            <Button variant="secondary" size="sm" nativeButton={false} render={<Link href="/friends" />}>
               <UserPlus className="size-4" />
               Add
             </Button>

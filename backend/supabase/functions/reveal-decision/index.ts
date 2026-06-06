@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
           user_id: participant.user_id,
           round: nextRound,
           prompt: followupFor(label, ai.plan) ??
-            "What would make a group compromise genuinely good for you, and what are you quietly willing to trade off?",
+            "Quick one — what would make tonight's spot a definite yes for you?",
         };
       });
 
