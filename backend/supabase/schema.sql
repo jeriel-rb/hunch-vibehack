@@ -168,15 +168,45 @@ create policy answers_update_self on public.answers
 -- ===== supabase/migrations/20260605120005_rpc.sql =====
 -- RPC functions for the transactional CRUD. All SECURITY DEFINER, validating auth.uid().
 
--- create_room: generate a unique short code, insert the room, auto-join the host.
+-- create_room: generate a unique short code, insert the room, auto-join the host,
+-- and pre-add selected accepted friends as room participants.
 create or replace function public.create_room(
-  p_question text, p_category text, p_location_label text,
-  p_lat double precision, p_lng double precision
+  p_question text,
+  p_category text,
+  p_location_label text,
+  p_lat double precision,
+  p_lng double precision,
+  p_member_ids uuid[] default '{}'::uuid[]
 ) returns public.rooms
 language plpgsql security definer set search_path = public as $$
-declare v_code text; v_room public.rooms; i int;
+declare
+  v_code text;
+  v_room public.rooms;
+  v_member_ids uuid[];
+  v_invalid_count int;
+  i int;
 begin
   if auth.uid() is null then raise exception 'not authenticated'; end if;
+
+  select coalesce(array_agg(distinct member_id), '{}'::uuid[])
+    into v_member_ids
+  from unnest(coalesce(p_member_ids, '{}'::uuid[])) as members(member_id)
+  where member_id is not null and member_id <> auth.uid();
+
+  select count(*)
+    into v_invalid_count
+  from unnest(v_member_ids) as members(member_id)
+  where not exists (
+    select 1
+    from public.friendships f
+    where f.status = 'accepted'
+      and f.user_low = least(auth.uid(), member_id)
+      and f.user_high = greatest(auth.uid(), member_id)
+  );
+
+  if v_invalid_count > 0 then
+    raise exception 'selected members must be accepted friends';
+  end if;
 
   loop
     v_code := '';
@@ -197,6 +227,12 @@ begin
   returning * into v_room;
 
   insert into public.room_participants (room_id, user_id) values (v_room.id, auth.uid());
+
+  insert into public.room_participants (room_id, user_id)
+  select v_room.id, member_id
+  from unnest(v_member_ids) as members(member_id)
+  on conflict (room_id, user_id) do nothing;
+
   return v_room;
 end; $$;
 
@@ -436,4 +472,3 @@ end; $$;
 -- Live updates for requests + invites (rooms already added in an earlier migration).
 alter publication supabase_realtime add table public.friendships;
 alter publication supabase_realtime add table public.room_invites;
-
